@@ -21,7 +21,7 @@ export default function Home() {
 				<Room size={10} />
 
 				<Movable>
-					<mesh position={[0, 0, 0]}>
+					<mesh position={[0, 0.5, 0]}>
 						<boxBufferGeometry args={[1, 1, 1]} />
 						<meshStandardMaterial color={"white"} />
 					</mesh>
