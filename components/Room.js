@@ -3,7 +3,11 @@ import { DoubleSide } from "three";
 export default function Room({ size = 10 }) {
 	return (
 		<>
-			<mesh className={"floor"} rotation={[-Math.PI / 2, 0, 0]}>
+			<mesh
+				receiveShadow
+				className={"floor"}
+				rotation={[-Math.PI / 2, 0, 0]}
+			>
 				<planeBufferGeometry args={[size, size]} />
 				<meshStandardMaterial
 					side={DoubleSide}
