@@ -5,6 +5,15 @@ export default function Room({ size = 10 }) {
 		<>
 			<mesh
 				receiveShadow
+				className={"subfloor"}
+				rotation={[-Math.PI / 2, 0, 0]}
+			>
+				<planeBufferGeometry args={[1000, 1000]} />
+				<meshBasicMaterial transparent={true} opacity={0} />
+			</mesh>
+
+			<mesh
+				receiveShadow
 				className={"floor"}
 				rotation={[-Math.PI / 2, 0, 0]}
 			>

@@ -47,7 +47,7 @@ export default function Movable({ children }) {
 
 		if (selected) {
 			const floor = state.scene.children.find(
-				e => e.className == "floor"
+				e => e.className == "subfloor"
 			);
 			const collision = state.raycaster.intersectObject(floor);
 

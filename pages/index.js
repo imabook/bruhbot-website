@@ -27,7 +27,8 @@ export default function Home() {
 					</mesh>
 				</Movable>
 
-				<OrbitControls enabled={false} />
+				<OrbitControls enabled={true} enablePan={true} />
+				{/* creo que deberia quitar el pan */}
 			</Canvas>
 		</div>
 	);
