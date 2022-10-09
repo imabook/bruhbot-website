@@ -2,19 +2,30 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import { Vector3 } from "three";
 
-export default function Movable({ children }) {
-	const ROOM_SIZE = 10;
-	const SCALE = new Vector3(1, 1, 1);
+import { moveAtom } from "../atoms/moveAtom";
+import { useAtom } from "jotai";
 
+export default function Movable({ children }) {
+	// constants (room size & object overall size)
+	const ROOM_SIZE = 10;
+	const SCALE = new Vector3(1, 1, 1); // kinda like the hitbox xd
+
+	// normal state shit -> selected, color change and position of the object
 	const [selected, setSelected] = useState(false);
 	const [color, setColor] = useState("white");
 	const [pos, setPos] = useState([0, 0, 0]);
 
+	// offset para siempre renderizar el medio del objeto donde se encuentra el puntero
 	const [offset, setOffset] = useState(new Vector3(0, 0, 0));
 
+	// frames para las animaciones de arriba y abajo cuando tienes el objeto seleccionado
 	const [frame, setFrame] = useState(0);
 	const { clock } = useThree();
 
+	// atom para comunicar con el parent si hay un objeto selecionado y no mover la sala
+	const [_, setMove] = useAtom(moveAtom);
+
+	// ref para sacar los children y cambiarles de color y calcular el offset
 	const ref = useRef();
 
 	useEffect(() => {
@@ -33,10 +44,37 @@ export default function Movable({ children }) {
 
 		// podria simplemente restar el valor en los calculos de la colision pero queda mas duro asi 🐠
 
+		let offsetX = [0, 0]; // first value: min; last value: max
+		let offsetZ = [0, 0]; // first value: min; last value: max
+
+		// this gets the outer bounds
+		// like the hitbox but it cares for the position
+		// because it has to cancel that position for it to really get in the middle
+		// aka (0, 0, 0)
+		ref.current.children.forEach(c => {
+			if (c.position.x < offsetX[0]) {
+				offsetX[0] = c.position.x;
+			} else if (c.position.x > offsetX[1]) {
+				offsetX[1] = c.position.x;
+			}
+
+			if (c.position.z < offsetZ[0]) {
+				offsetZ[0] = c.position.z;
+			} else if (c.position.z > offsetZ[1]) {
+				offsetZ[1] = c.position.z;
+			}
+		});
+
 		setOffset(
 			new Vector3()
-				.copy(ref.current.children[0].position)
-				.setY(0)
+				.copy(
+					// la media de los dos porque queremos centrar el punto del medio
+					new Vector3(
+						(offsetX[0] + offsetX[1]) / 2,
+						0,
+						(offsetZ[0] + offsetZ[1]) / 2
+					)
+				)
 				.multiplyScalar(-1)
 		);
 	}, []);
@@ -74,7 +112,7 @@ export default function Movable({ children }) {
 			}
 
 			// calculation of animations
-			height = Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
+			height = 0.1 + Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
 		}
 		setPos(position_vector.add(new Vector3(0, height, 0)).toArray());
 	});
@@ -85,15 +123,18 @@ export default function Movable({ children }) {
 			position={pos}
 			onPointerEnter={_ => setColor("hotpink")}
 			onPointerLeave={_ => setColor("white")}
-			// a lo mejor tengo que cambiar esto por onPointerDown y onPointerUp para telefono xd
-			onClick={_ => {
-				if (selected) {
-					setColor("hotpink");
-				} else {
-					setColor("orange");
-				}
+			onPointerDown={_ => {
+				setColor("orange");
 				setFrame(clock.elapsedTime);
-				setSelected(!selected);
+				setSelected(true);
+
+				setMove(false); // stops the rotation of the room
+			}}
+			onPointerUp={_ => {
+				setColor("hotpink");
+				setSelected(false);
+
+				setMove(true); // stops the rotation of the room
 			}}
 		>
 			{children}

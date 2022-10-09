@@ -4,9 +4,14 @@ import { OrbitControls } from "@react-three/drei";
 import Movable from "../components/Movable";
 import Room from "../components/Room";
 
+import { moveAtom } from "../atoms/moveAtom";
+import { useAtom } from "jotai";
+
 // softShadows();
 
 export default function Home() {
+	const [enabled] = useAtom(moveAtom);
+
 	return (
 		<div className="w-screen h-screen">
 			<Canvas shadows camera={{ position: [5, 5, 5] }}>
@@ -27,7 +32,7 @@ export default function Home() {
 					</mesh>
 				</Movable>
 
-				<OrbitControls enabled={true} enablePan={true} />
+				<OrbitControls enabled={enabled} enablePan={true} />
 				{/* creo que deberia quitar el pan */}
 			</Canvas>
 		</div>
