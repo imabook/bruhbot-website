@@ -5,10 +5,10 @@ import { Vector3 } from "three";
 import { moveAtom } from "../atoms/moveAtom";
 import { useAtom } from "jotai";
 
-export default function Movable({ children }) {
+export default function Movable({ id, scale, children }) {
 	// constants (room size & object overall size)
 	const ROOM_SIZE = 10;
-	const SCALE = new Vector3(1, 1, 1); // kinda like the hitbox xd
+	const SCALE = scale ? new Vector3().fromArray(scale) : new Vector3(1, 1, 1); // kinda like the hitbox xd
 
 	// normal state shit -> selected, color change and position of the object
 	const [selected, setSelected] = useState(false);
@@ -23,7 +23,7 @@ export default function Movable({ children }) {
 	const { clock } = useThree();
 
 	// atom para comunicar con el parent si hay un objeto selecionado y no mover la sala
-	const [_, setMove] = useAtom(moveAtom);
+	const [move, setMove] = useAtom(moveAtom);
 
 	// ref para sacar los children y cambiarles de color y calcular el offset
 	const ref = useRef();
@@ -44,38 +44,37 @@ export default function Movable({ children }) {
 
 		// podria simplemente restar el valor en los calculos de la colision pero queda mas duro asi 🐠
 
-		let offsetX = [0, 0]; // first value: min; last value: max
-		let offsetZ = [0, 0]; // first value: min; last value: max
+		let offsetX = [null, null]; // first value: min; last value: max
+		let offsetZ = [null, null]; // first value: min; last value: max
 
 		// this gets the outer bounds
 		// like the hitbox but it cares for the position
 		// because it has to cancel that position for it to really get in the middle
 		// aka (0, 0, 0)
 		ref.current.children.forEach(c => {
-			if (c.position.x < offsetX[0]) {
+			if (offsetX[0] == null || c.position.x < offsetX[0]) {
 				offsetX[0] = c.position.x;
-			} else if (c.position.x > offsetX[1]) {
+			}
+			if (offsetX[1] == null || c.position.x > offsetX[1]) {
 				offsetX[1] = c.position.x;
 			}
 
-			if (c.position.z < offsetZ[0]) {
+			if (offsetZ[0] == null || c.position.z < offsetZ[0]) {
 				offsetZ[0] = c.position.z;
-			} else if (c.position.z > offsetZ[1]) {
+			}
+			if (offsetZ[1] == null || c.position.z > offsetZ[1]) {
 				offsetZ[1] = c.position.z;
 			}
 		});
 
 		setOffset(
-			new Vector3()
-				.copy(
-					// la media de los dos porque queremos centrar el punto del medio
-					new Vector3(
-						(offsetX[0] + offsetX[1]) / 2,
-						0,
-						(offsetZ[0] + offsetZ[1]) / 2
-					)
-				)
-				.multiplyScalar(-1)
+			// la media de los dos porque queremos centrar el punto del medio
+
+			new Vector3(
+				(offsetX[0] + offsetX[1]) / 2,
+				0,
+				(offsetZ[0] + offsetZ[1]) / 2
+			).multiplyScalar(-1)
 		);
 	}, []);
 
@@ -114,27 +113,47 @@ export default function Movable({ children }) {
 			// calculation of animations
 			height = 0.1 + Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
 		}
+
 		setPos(position_vector.add(new Vector3(0, height, 0)).toArray());
 	});
+
+	const isFirstCollision = intersection => {
+		return intersection ? intersection.eventObject == ref.current : false;
+	};
 
 	return (
 		<mesh
 			ref={ref}
 			position={pos}
-			onPointerEnter={_ => setColor("hotpink")}
-			onPointerLeave={_ => setColor("white")}
-			onPointerDown={_ => {
-				setColor("orange");
-				setFrame(clock.elapsedTime);
-				setSelected(true);
+			onPointerMove={e => {
+				// codigo para el highlight xd
 
-				setMove(false); // stops the rotation of the room
+				isFirstCollision(e.intersections[0]) && move
+					? setColor("hotpink")
+					: setColor("white");
+			}}
+			onPointerLeave={_ => setColor("white")}
+			onPointerDown={e => {
+				console.log(e.intersections);
+				if (isFirstCollision(e.intersections[0])) {
+					if (move) {
+						// si se puede rotar significa que no hay otro objeto selecionado
+						setColor("orange");
+						setFrame(clock.elapsedTime);
+						setSelected(true);
+
+						setMove(false); // stops the rotation of the room
+					}
+				}
 			}}
 			onPointerUp={_ => {
-				setColor("hotpink");
-				setSelected(false);
+				if (selected) {
+					// por si esta selecionado otro objeto y se cambia el setMove erroneamente
+					setColor("hotpink");
+					setSelected(false);
 
-				setMove(true); // stops the rotation of the room
+					setMove(true); // stops the rotation of the room
+				}
 			}}
 		>
 			{children}

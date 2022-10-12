@@ -6,6 +6,7 @@ import Room from "../components/Room";
 
 import { moveAtom } from "../atoms/moveAtom";
 import { useAtom } from "jotai";
+import Objects from "../components/Objects";
 
 // softShadows();
 
@@ -25,14 +26,16 @@ export default function Home() {
 
 				<Room size={10} />
 
-				<Movable>
-					<mesh castShadow position={[0, 0.5, 0]}>
-						<boxBufferGeometry args={[1, 1, 1]} />
+				<Objects />
+
+				<Movable scale={[2, 2, 2]}>
+					<mesh castShadow position={[0, 1, 1]}>
+						<boxBufferGeometry args={[2, 2, 2]} />
 						<meshStandardMaterial color={"white"} />
 					</mesh>
 				</Movable>
 
-				<OrbitControls enabled={enabled} enablePan={true} />
+				<OrbitControls enabled={enabled} enablePan={false} />
 				{/* creo que deberia quitar el pan */}
 			</Canvas>
 		</div>
