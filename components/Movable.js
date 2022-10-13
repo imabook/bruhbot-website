@@ -4,6 +4,7 @@ import { Vector3 } from "three";
 
 import { moveAtom } from "../atoms/moveAtom";
 import { useAtom } from "jotai";
+import { roomAtom } from "../atoms/roomAtom";
 
 export default function Movable({ id, scale, children }) {
 	// constants (room size & object overall size)
@@ -24,6 +25,8 @@ export default function Movable({ id, scale, children }) {
 
 	// atom para comunicar con el parent si hay un objeto selecionado y no mover la sala
 	const [move, setMove] = useAtom(moveAtom);
+	// atom para saber donde estan puestos los objetos y actualizarlos de posicion
+	const [room, setRoom] = useAtom(roomAtom);
 
 	// ref para sacar los children y cambiarles de color y calcular el offset
 	const ref = useRef();
@@ -88,27 +91,8 @@ export default function Movable({ id, scale, children }) {
 			);
 			const collision = state.raycaster.intersectObject(floor);
 
-			if (collision[0]) {
-				// position calculation and things like that
-				// with offsets and collisions (kinda)
-
-				let x = collision[0].point.x + offset.x;
-				let z = collision[0].point.z + offset.z;
-
-				if (collision[0].point.x > ROOM_SIZE / 2 - SCALE.x / 2) {
-					x = ROOM_SIZE / 2 - SCALE.x / 2 + offset.x;
-				} else if (collision[0].point.x < SCALE.x / 2 - ROOM_SIZE / 2) {
-					x = SCALE.x / 2 - ROOM_SIZE / 2 + offset.x;
-				}
-
-				if (collision[0].point.z > ROOM_SIZE / 2 - SCALE.z / 2) {
-					z = ROOM_SIZE / 2 - SCALE.z / 2 + offset.z;
-				} else if (collision[0].point.z < SCALE.z / 2 - ROOM_SIZE / 2) {
-					z = SCALE.z / 2 - ROOM_SIZE / 2 + offset.z;
-				}
-
-				position_vector = new Vector3(x, 0, z);
-			}
+			position_vector = calcMovement(collision[0]) || position_vector;
+			calcCollision(position_vector);
 
 			// calculation of animations
 			height = 0.1 + Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
@@ -116,6 +100,48 @@ export default function Movable({ id, scale, children }) {
 
 		setPos(position_vector.add(new Vector3(0, height, 0)).toArray());
 	});
+
+	const calcMovement = col => {
+		if (col) {
+			// position calculation and things like that
+			// with offsets and collisions (kinda)
+
+			let x = col.point.x + offset.x;
+			let z = col.point.z + offset.z;
+
+			if (col.point.x > ROOM_SIZE / 2 - SCALE.x / 2) {
+				x = ROOM_SIZE / 2 - SCALE.x / 2 + offset.x;
+			} else if (col.point.x < SCALE.x / 2 - ROOM_SIZE / 2) {
+				x = SCALE.x / 2 - ROOM_SIZE / 2 + offset.x;
+			}
+
+			if (col.point.z > ROOM_SIZE / 2 - SCALE.z / 2) {
+				z = ROOM_SIZE / 2 - SCALE.z / 2 + offset.z;
+			} else if (col.point.z < SCALE.z / 2 - ROOM_SIZE / 2) {
+				z = SCALE.z / 2 - ROOM_SIZE / 2 + offset.z;
+			}
+
+			return new Vector3(x, 0, z);
+		}
+	};
+
+	const calcCollision = pos => {
+		const offsetAware = pos.clone().add(offset.clone().multiplyScalar(-1));
+		// console.log(pos, offset, offsetAware);
+		for (let o of room) {
+			if (o.id == id) continue;
+
+			if (
+				o.position[0] + o.scale[0] / 2 > offsetAware.x - SCALE.x / 2 &&
+				o.position[0] - o.scale[0] / 2 < offsetAware.x + SCALE.x / 2 &&
+				o.position[2] + o.scale[2] / 2 > offsetAware.z - SCALE.z / 2 &&
+				o.position[2] - o.scale[2] / 2 < offsetAware.z + SCALE.z / 2
+			) {
+				console.log("el gueso ⚠️");
+				return; // o break;
+			}
+		}
+	};
 
 	const isFirstCollision = intersection => {
 		return intersection ? intersection.eventObject == ref.current : false;
@@ -134,7 +160,6 @@ export default function Movable({ id, scale, children }) {
 			}}
 			onPointerLeave={_ => setColor("white")}
 			onPointerDown={e => {
-				console.log(e.intersections);
 				if (isFirstCollision(e.intersections[0])) {
 					if (move) {
 						// si se puede rotar significa que no hay otro objeto selecionado

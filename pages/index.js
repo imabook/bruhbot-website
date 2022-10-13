@@ -28,14 +28,14 @@ export default function Home() {
 
 				<Objects />
 
-				<Movable scale={[2, 2, 2]}>
+				{/* <Movable scale={[2, 2, 2]}>
 					<mesh castShadow position={[0, 1, 1]}>
 						<boxBufferGeometry args={[2, 2, 2]} />
 						<meshStandardMaterial color={"white"} />
 					</mesh>
-				</Movable>
+				</Movable> */}
 
-				<OrbitControls enabled={enabled} enablePan={false} />
+				<OrbitControls enabled={enabled} enablePan={true} />
 				{/* creo que deberia quitar el pan */}
 			</Canvas>
 		</div>
