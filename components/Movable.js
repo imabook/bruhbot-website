@@ -91,8 +91,13 @@ export default function Movable({ id, scale, children }) {
 			);
 			const collision = state.raycaster.intersectObject(floor);
 
+			// let temp_position_vector =
+			// 	calcMovement(collision[0]) || position_vector;
+			// position_vector = calcCollision(temp_position_vector)
+			// 	? position_vector
+			// 	: temp_position_vector;
 			position_vector = calcMovement(collision[0]) || position_vector;
-			calcCollision(position_vector);
+			position_vector.sub(calcCollision(position_vector, collision[0]));
 
 			// calculation of animations
 			height = 0.1 + Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
@@ -125,9 +130,13 @@ export default function Movable({ id, scale, children }) {
 		}
 	};
 
-	const calcCollision = pos => {
-		const offsetAware = pos.clone().add(offset.clone().multiplyScalar(-1));
+	const calcCollision = (pos, col) => {
+		const offsetAware = pos.clone().sub(offset.clone());
+		let collisionOffset = new Vector3(0, 0, 0);
 		// console.log(pos, offset, offsetAware);
+
+		// pos.multiplyScalar(-1);
+
 		for (let o of room) {
 			if (o.id == id) continue;
 
@@ -137,10 +146,40 @@ export default function Movable({ id, scale, children }) {
 				o.position[2] + o.scale[2] / 2 > offsetAware.z - SCALE.z / 2 &&
 				o.position[2] - o.scale[2] / 2 < offsetAware.z + SCALE.z / 2
 			) {
-				console.log("el gueso ⚠️");
-				return; // o break;
+				// console.log(col.point);
+				collisionOffset = new Vector3()
+					.fromArray(o.position)
+					.setY(0)
+					.sub(col.point);
+
+				console.log(collisionOffset);
+
+				if (
+					Math.abs(collisionOffset.x) >= Math.abs(collisionOffset.z)
+				) {
+					collisionOffset = new Vector3(
+						// Math.sign(collisionOffset.x) *
+						(Math.sign(collisionOffset.x) * 1 - collisionOffset.x) *
+							o.scale[0],
+						0,
+						0
+					);
+				} else {
+					collisionOffset = new Vector3(
+						0,
+						0,
+						// Math.sign(collisionOffset.z) *
+						(Math.sign(collisionOffset.z) * 1 - collisionOffset.z) *
+							o.scale[2]
+					);
+				}
+
+				break;
 			}
 		}
+		console.log(collisionOffset);
+
+		return collisionOffset;
 	};
 
 	const isFirstCollision = intersection => {
