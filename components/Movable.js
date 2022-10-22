@@ -6,7 +6,7 @@ import { moveAtom } from "../atoms/moveAtom";
 import { useAtom } from "jotai";
 import { roomAtom } from "../atoms/roomAtom";
 
-export default function Movable({ id, scale, children }) {
+export default function Movable({ id, scale, children, position }) {
 	// constants (room size & object overall size)
 	const ROOM_SIZE = 10;
 	const SCALE = scale ? new Vector3().fromArray(scale) : new Vector3(1, 1, 1); // kinda like the hitbox xd
@@ -14,7 +14,10 @@ export default function Movable({ id, scale, children }) {
 	// normal state shit -> selected, color change and position of the object
 	const [selected, setSelected] = useState(false);
 	const [color, setColor] = useState("white");
-	const [pos, setPos] = useState([0, 0, 0]);
+
+	position = [...position]; // creating a copy of the array so the og one doesnt change and messes with the pos
+	position[1] = 0;
+	const [pos, setPos] = useState(position);
 
 	// offset para siempre renderizar el medio del objeto donde se encuentra el puntero
 	const [offset, setOffset] = useState(new Vector3(0, 0, 0));
@@ -96,8 +99,18 @@ export default function Movable({ id, scale, children }) {
 			// position_vector = calcCollision(temp_position_vector)
 			// 	? position_vector
 			// 	: temp_position_vector;
-			position_vector = calcMovement(collision[0]) || position_vector;
-			position_vector.sub(calcCollision(position_vector, collision[0]));
+
+			if (collision[0]) {
+				// podria hacer collision[0]?. y queda hasta mejor pero no se si es necesariamente mejor xd
+				let x = collision[0].point.x + offset.x;
+				let z = collision[0].point.z + offset.z;
+				position_vector = new Vector3(x, 0, z);
+			}
+
+			calcCollision(position_vector, collision[0]);
+
+			// position_vector = calcMovement(collision[0]) || position_vector;
+			// position_vector.sub(calcCollision(position_vector, collision[0]));
 
 			// calculation of animations
 			height = 0.1 + Math.sin((state.clock.elapsedTime - frame) * 5) / 10;
@@ -131,55 +144,73 @@ export default function Movable({ id, scale, children }) {
 	};
 
 	const calcCollision = (pos, col) => {
-		const offsetAware = pos.clone().sub(offset.clone());
-		let collisionOffset = new Vector3(0, 0, 0);
-		// console.log(pos, offset, offsetAware);
+		// console.log(pos, col.point);
 
-		// pos.multiplyScalar(-1);
+		// 	const offsetAware = col.point.clone().add(offset.clone());
+		// 	let collisionOffset = new Vector3(0, 0, 0);
+		// 	// console.log(pos, offset, offsetAware);
+
+		let colisions = 0;
+
+		// 	// pos.multiplyScalar(-1);
 
 		for (let o of room) {
 			if (o.id == id) continue;
 
 			if (
-				o.position[0] + o.scale[0] / 2 > offsetAware.x - SCALE.x / 2 &&
-				o.position[0] - o.scale[0] / 2 < offsetAware.x + SCALE.x / 2 &&
-				o.position[2] + o.scale[2] / 2 > offsetAware.z - SCALE.z / 2 &&
-				o.position[2] - o.scale[2] / 2 < offsetAware.z + SCALE.z / 2
+				o.position[0] + o.scale[0] / 2 > col.point.x - SCALE.x / 2 &&
+				o.position[0] - o.scale[0] / 2 < col.point.x + SCALE.x / 2 &&
+				o.position[2] + o.scale[2] / 2 > col.point.z - SCALE.z / 2 &&
+				o.position[2] - o.scale[2] / 2 < col.point.z + SCALE.z / 2
 			) {
-				// console.log(col.point);
-				collisionOffset = new Vector3()
-					.fromArray(o.position)
-					.setY(0)
-					.sub(col.point);
-
-				console.log(collisionOffset);
-
-				if (
-					Math.abs(collisionOffset.x) >= Math.abs(collisionOffset.z)
-				) {
-					collisionOffset = new Vector3(
-						// Math.sign(collisionOffset.x) *
-						(Math.sign(collisionOffset.x) * 1 - collisionOffset.x) *
-							o.scale[0],
-						0,
-						0
-					);
-				} else {
-					collisionOffset = new Vector3(
-						0,
-						0,
-						// Math.sign(collisionOffset.z) *
-						(Math.sign(collisionOffset.z) * 1 - collisionOffset.z) *
-							o.scale[2]
-					);
-				}
-
-				break;
+				colisions++;
 			}
 		}
-		console.log(collisionOffset);
 
-		return collisionOffset;
+		if (col.point.x > ROOM_SIZE / 2 - SCALE.x / 2) {
+			colisions++;
+		} else if (col.point.x < SCALE.x / 2 - ROOM_SIZE / 2) {
+			colisions++;
+		}
+
+		if (col.point.z > ROOM_SIZE / 2 - SCALE.z / 2) {
+			colisions++;
+		} else if (col.point.z < SCALE.z / 2 - ROOM_SIZE / 2) {
+			colisions++;
+		}
+
+		console.log(colisions);
+
+		// 			// console.log(col.point);
+		// 			collisionOffset.add(
+		// 				new Vector3().fromArray(o.position).setY(0).sub(col.point)
+		// 			);
+
+		// 			if (
+		// 				Math.abs(collisionOffset.x) >= Math.abs(collisionOffset.z)
+		// 			) {
+		// 				// un poco de magia pero ya lo entiendo xd es ez
+		// 				// si el german del futuro no sabe que he hecho aqui que se joda
+		// 				collisionOffset = new Vector3(
+		// 					Math.sign(collisionOffset.x) * 1 - collisionOffset.x,
+		// 					0,
+		// 					0
+		// 				);
+		// 			} else {
+		// 				collisionOffset = new Vector3(
+		// 					0,
+		// 					0,
+		// 					Math.sign(collisionOffset.z) * 1 - collisionOffset.z
+		// 				);
+		// 			}
+
+		// 			// break;
+		// 		}
+		// 	}
+
+		// 	console.log(colisions);
+
+		// 	return collisionOffset;
 	};
 
 	const isFirstCollision = intersection => {
@@ -215,6 +246,17 @@ export default function Movable({ id, scale, children }) {
 					// por si esta selecionado otro objeto y se cambia el setMove erroneamente
 					setColor("hotpink");
 					setSelected(false);
+
+					// console.log(room);
+
+					// console.log(
+					// 	[...room].map(o => {
+					// 		if (o.id == id) {
+					// 			o.position = pos;
+					// 		}
+					// 		return o;
+					// 	})
+					// );
 
 					setMove(true); // stops the rotation of the room
 				}

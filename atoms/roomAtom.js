@@ -1,9 +1,10 @@
 import { atom } from "jotai";
 
 const roomAtom = atom([
-	{ id: 0, scale: [1, 1, 1], position: [2, 0.5, 2], type: "movable" },
-	{ id: 1, scale: [1, 1, 1], position: [4, 0.5, 4], type: "movable" },
-	// { id: 2, scale: [1, 1, 1], position: [0, 0.5, 1], type: "movable" },
+	{ id: 0, scale: [1, 1, 1], position: [0, 0.5, 2], type: "movable" },
+	{ id: 1, scale: [1, 1, 1], position: [1.5, 0.5, 0], type: "movable" },
+	{ id: 2, scale: [1, 1, 1], position: [0, 0.5, 0], type: "movable" },
+	{ id: 3, scale: [2, 1, 0.5], position: [4, 0.5, 0], type: "movable" },
 ]);
 export { roomAtom };
 
