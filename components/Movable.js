@@ -100,14 +100,14 @@ export default function Movable({ id, scale, children, position }) {
 			// 	? position_vector
 			// 	: temp_position_vector;
 
-			if (collision[0]) {
-				// podria hacer collision[0]?. y queda hasta mejor pero no se si es necesariamente mejor xd
-				let x = collision[0].point.x + offset.x;
-				let z = collision[0].point.z + offset.z;
-				position_vector = new Vector3(x, 0, z);
-			}
+			// if (collision[0]) {
+			// 	// podria hacer collision[0]?. y queda hasta mejor pero no se si es necesariamente mejor xd
+			// 	let x = collision[0].point.x + offset.x;
+			// 	let z = collision[0].point.z + offset.z;
+			// 	position_vector = new Vector3(x, 0, z);
+			// }
 
-			calcCollision(position_vector, collision[0]);
+			position_vector = calcCollision2(collision[0]) || position_vector;
 
 			// position_vector = calcMovement(collision[0]) || position_vector;
 			// position_vector.sub(calcCollision(position_vector, collision[0]));
@@ -150,7 +150,8 @@ export default function Movable({ id, scale, children, position }) {
 		// 	let collisionOffset = new Vector3(0, 0, 0);
 		// 	// console.log(pos, offset, offsetAware);
 
-		let colisions = 0;
+		let colisions = false;
+		let offsets = [];
 
 		// 	// pos.multiplyScalar(-1);
 
@@ -163,23 +164,56 @@ export default function Movable({ id, scale, children, position }) {
 				o.position[2] + o.scale[2] / 2 > col.point.z - SCALE.z / 2 &&
 				o.position[2] - o.scale[2] / 2 < col.point.z + SCALE.z / 2
 			) {
-				colisions++;
+				// corrige del lado que menos tenga que mover
+				// if (
+				// 	Math.abs(o.position[2] - col.point.z) >=
+				// 	Math.abs(o.position[0] - col.point.x)
+				// ) {
+				// 	// un poco de magia pero ya lo entiendo xd es ez
+				// 	// si el german del futuro no sabe que he hecho aqui que se joda
+				// 	offsets.push(
+				// 		new Vector3(
+				// 			0,
+				// 			0,
+				// 			-Math.sign(o.position[2] - col.point.z) -
+				// 				o.position[2] -
+				// 				col.point.z
+				// 		)
+				// 	);
+				// } else {
+				// 	offsets.push(
+				// 		new Vector3(
+				// 			-Math.sign(o.position[0] - col.point.x) -
+				// 				o.position[0] -
+				// 				col.point.x,
+				// 			0,
+				// 			0
+				// 		)
+				// 	);
+				// }
+
+				colisions = true;
+				break;
 			}
 		}
 
 		if (col.point.x > ROOM_SIZE / 2 - SCALE.x / 2) {
-			colisions++;
+			colisions = true;
 		} else if (col.point.x < SCALE.x / 2 - ROOM_SIZE / 2) {
-			colisions++;
+			colisions = true;
 		}
 
 		if (col.point.z > ROOM_SIZE / 2 - SCALE.z / 2) {
-			colisions++;
+			colisions = true;
 		} else if (col.point.z < SCALE.z / 2 - ROOM_SIZE / 2) {
-			colisions++;
+			colisions = true;
 		}
 
-		console.log(colisions);
+		if (!colisions) {
+			let x = col.point.x + offset.x;
+			let z = col.point.z + offset.z;
+			return new Vector3(x, 0, z);
+		}
 
 		// 			// console.log(col.point);
 		// 			collisionOffset.add(
@@ -211,6 +245,67 @@ export default function Movable({ id, scale, children, position }) {
 		// 	console.log(colisions);
 
 		// 	return collisionOffset;
+	};
+
+	const calcCollision2 = col => {
+		let colidingX,
+			colidingZ = (false, false);
+		let mouseColidingX,
+			mouseColidingZ = (false, false);
+
+		for (let o of room) {
+			if (o.id == id) continue;
+
+			if (
+				o.position[0] + o.scale[0] / 2 > pos[0] - SCALE.x / 2 &&
+				o.position[0] - o.scale[0] / 2 < pos[0] + SCALE.x / 2 &&
+				o.position[2] + o.scale[2] / 2 > pos[2] - SCALE.z / 2 &&
+				o.position[2] - o.scale[2] / 2 < pos[2] + SCALE.z / 2
+			) {
+				colidingX = true;
+				colidingZ = true;
+			}
+
+			if (
+				o.position[0] + o.scale[0] / 2 > col.point.x - SCALE.x / 2 &&
+				o.position[0] - o.scale[0] / 2 < col.point.x + SCALE.x / 2 &&
+				o.position[2] + o.scale[2] / 2 > col.point.z - SCALE.z / 2 &&
+				o.position[2] - o.scale[2] / 2 < col.point.z + SCALE.z / 2
+			) {
+				mouseColidingX = true;
+				mouseColidingZ = true;
+			}
+		}
+
+		if (pos[0] > ROOM_SIZE / 2 - SCALE.x / 2) {
+			colidingX = true;
+		} else if (pos[0] < SCALE.x / 2 - ROOM_SIZE / 2) {
+			colidingX = true;
+		}
+
+		if (pos[2] > ROOM_SIZE / 2 - SCALE.z / 2) {
+			colidingZ = true;
+		} else if (pos[2] < SCALE.z / 2 - ROOM_SIZE / 2) {
+			colidingZ = true;
+		}
+
+		if (col.point.x > ROOM_SIZE / 2 - SCALE.x / 2) {
+			mouseColidingX = true;
+		} else if (col.point.x < SCALE.x / 2 - ROOM_SIZE / 2) {
+			mouseColidingX = true;
+		}
+
+		if (col.point.z > ROOM_SIZE / 2 - SCALE.z / 2) {
+			mouseColidingZ = true;
+		} else if (col.point.z < SCALE.z / 2 - ROOM_SIZE / 2) {
+			mouseColidingZ = true;
+		}
+
+		console.log(colidingX, colidingZ);
+
+		let x = colidingX && mouseColidingX ? pos[0] : col.point.x + offset.x;
+		let z = colidingZ && mouseColidingZ ? pos[2] : col.point.z + offset.z;
+		return new Vector3(x, 0, z);
 	};
 
 	const isFirstCollision = intersection => {
